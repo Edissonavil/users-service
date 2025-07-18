@@ -1,0 +1,39 @@
+spring:
+  application:
+    name: aec-users
+  mail:
+    host:       ${MAIL_HOST:smtp.hostinger.com}
+    port:       ${MAIL_PORT:587}
+    username:   ${MAIL_USER:support@aecblock.com}
+    password:   ${MAIL_PASS:ProductosAec2025@}
+    protocol:   smtp
+    properties:
+      mail.smtp.auth:             true
+      mail.smtp.starttls.enable:  true
+      mail.smtp.ssl.enable:       false
+      mail.smtp.ssl.trust:        ${MAIL_HOST:smtp.hostinger.com}
+    default-encoding: UTF-8
+
+  datasource:
+    url:      ${DATASOURCE_URL:jdbc:postgresql://localhost:5432/aec}
+    username: ${DATASOURCE_USER:aec}
+    password: ${DATASOURCE_PASS:2412}
+  jpa:
+    hibernate:
+      ddl-auto: ${DDL_AUTO:update}
+
+jwt:
+  secret:    ${JWT_SECRET:Cuetm0BgR8Bjk8Mo2OXtOlOxkc/N1K2g3vKx82o8Lcw=}
+  accessMs:  ${JWT_ACCESS_MS:3600000}
+  refreshMs: ${JWT_REFRESH_MS:86400000}
+
+server:
+  port: ${SERVER_PORT:8081}
+
+admin:
+  email: ${ADMIN_EMAIL:support@aecblock.com}
+
+spring:
+  docker:
+    compose:
+      enabled: false

@@ -19,22 +19,25 @@ public class SolicitudController {
     private final EmailService emailService; // Inyección por constructor
 
     @PostMapping("/solicitud-creador")
-    public ResponseEntity<String> solicitarCreador(@RequestBody SolicitudCreadorDTO solicitud) {
+    public ResponseEntity<String> solicitarCreador(@RequestBody SolicitudCreadorDTO request) {
         try {
+            // Llama al servicio de correo para enviar la notificación al administrador
             emailService.sendCreatorApplicationEmail(
-                solicitud.getNombreCompleto(),
-                solicitud.getUsername(),
-                solicitud.getEmail()
+                request.getNombreCompleto(),
+                request.getUsername(),
+                request.getEmail(),
+                request.getHablanosDeTi() 
             );
-            return ResponseEntity.ok("Solicitud enviada exitosamente. El administrador ha sido notificado.");
+            return ResponseEntity.ok("Solicitud enviada con éxito.");
         } catch (MailException e) {
-            System.err.println("Error al enviar correo de solicitud: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                                 .body("Error al procesar la solicitud. No se pudo enviar el correo de notificación.");
+            // Manejo de errores de envío de correo
+            return ResponseEntity.internalServerError().body("Error al enviar la solicitud: " + e.getMessage());
+        } catch (IllegalStateException e) {
+            // Manejo de errores de configuración (ej. adminEmailRecipient no configurado)
+            return ResponseEntity.internalServerError().body(e.getMessage());
         } catch (Exception e) {
-            System.err.println("Error inesperado al procesar solicitud: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                                 .body("Ocurrió un error inesperado. Por favor, inténtalo de nuevo más tarde.");
+            // Otros errores inesperados
+            return ResponseEntity.internalServerError().body("Ocurrió un error inesperado al procesar la solicitud.");
         }
     }
 }

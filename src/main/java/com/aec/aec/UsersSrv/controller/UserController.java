@@ -170,7 +170,7 @@ public class UserController {
     // 9) Solicitud de creador (ya existente)
     @PostMapping("/solicitud-creador")
     public ResponseEntity<?> crearSolicitud(@RequestBody SolicitudCreadorDTO dto) {
-        emailService.sendCreatorApplicationEmail(dto.getNombreCompleto(), dto.getUsername(), dto.getEmail());
+        emailService.sendCreatorApplicationEmail(dto.getNombreCompleto(), dto.getUsername(), dto.getEmail(), dto.getHablanosDeTi());
         return ResponseEntity.ok(Map.of("status", "enviado"));
     }
 

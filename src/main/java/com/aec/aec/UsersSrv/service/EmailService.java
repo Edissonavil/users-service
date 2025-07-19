@@ -9,10 +9,16 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class EmailService {
+
+        private static final Logger log = LoggerFactory.getLogger(EmailService.class);
+
 
     @Autowired
     private JavaMailSender mailSender;
@@ -21,25 +27,73 @@ public class EmailService {
     @Value("${admin.email.recipient:support@aecblock.com}")
     private String adminEmailRecipient;
 
-    public void sendCreatorApplicationEmail(String nombreCompleto, String username, String email) throws MailException {
-    if (adminEmailRecipient == null || adminEmailRecipient.isBlank()) {
-        throw new IllegalStateException("El correo del administrador no está configurado.");
+    // Inyecta el correo del remitente desde application.yml/properties
+    @Value("${admin.email.sender:support@aecblock.com}")
+    private String senderEmail;
+
+    public void sendCreatorApplicationEmail(String nombreCompleto, String username, String email, String hablanosDeTi) throws MailException {
+        if (adminEmailRecipient == null || adminEmailRecipient.isBlank()) {
+            throw new IllegalStateException("El correo del administrador no está configurado (admin.email.recipient).");
+        }
+
+        StringBuilder emailText = new StringBuilder();
+        emailText.append("Se ha recibido una nueva solicitud para ser Creador AEC con los siguientes datos:\n\n");
+        emailText.append("Nombre Completo: ").append(nombreCompleto).append("\n");
+        emailText.append("Nombre de Usuario Sugerido: ").append(username).append("\n");
+        emailText.append("Correo Electrónico: ").append(email).append("\n");
+
+        if (hablanosDeTi != null && !hablanosDeTi.trim().isEmpty()) {
+            emailText.append("Háblanos un poco de ti: \n").append(hablanosDeTi).append("\n");
+        } else {
+            emailText.append("Háblanos un poco de ti: El usuario no proporcionó información adicional.\n");
+        }
+        emailText.append("\nPor favor, revisa esta solicitud y contacta al interesado.");
+
+        // Usamos sendHtmlEmail para mantener la coherencia si quieres usar HTML en el futuro
+        // Por ahora, el contenido es plano, pero MimeMessageHelper lo permite.
+        String subject = "Nueva Solicitud de Creador AEC";
+        String htmlContent = String.format(
+            "<html>" +
+            "<body>" +
+            "<p>Se ha recibido una nueva solicitud para ser Creador AEC con los siguientes datos:</p>" +
+            "<ul>" +
+            "<li><strong>Nombre Completo:</strong> %s</li>" +
+            "<li><strong>Nombre de Usuario Sugerido:</strong> %s</li>" +
+            "<li><strong>Correo Electrónico:</strong> %s</li>" +
+            "<li><strong>Háblanos un poco de ti:</strong> %s</li>" +
+            "</ul>" +
+            "<p>Por favor, revisa esta solicitud y contacta al interesado.</p>" +
+            "<p>Saludos cordiales,<br/>El sistema AECBlock</p>" +
+            "</body>" +
+            "</html>",
+            nombreCompleto, username, email,
+            (hablanosDeTi != null && !hablanosDeTi.trim().isEmpty()) ? hablanosDeTi.replace("\n", "<br/>") : "El usuario no proporcionó información adicional."
+        );
+
+        sendHtmlEmail(adminEmailRecipient.trim(), subject, htmlContent);
+        // log.info("Correo de solicitud de creador enviado a: {}", adminEmailRecipient);
     }
 
-    SimpleMailMessage message = new SimpleMailMessage();
-    message.setTo(adminEmailRecipient.trim());
-    message.setFrom("support@aecblock.com");
-    message.setSubject("Nueva Solicitud de Creador AEC");
-    message.setText(
-        "Se ha recibido una nueva solicitud para ser Creador AEC con los siguientes datos:\n\n" +
-        "Nombre Completo: " + nombreCompleto + "\n" +
-        "Nombre de Usuario Sugerido: " + username + "\n" +
-        "Correo Electrónico: " + email + "\n\n" +
-        "Por favor, revisa esta solicitud y contacta al interesado."
-    );
 
-    mailSender.send(message);
-}
+   private void sendHtmlEmail(String toEmail, String subject, String htmlContent) {
+        if (toEmail == null || toEmail.isBlank()) {
+            log.warn("No hay destinatario para el email: {}", subject);
+            return;
+        }
+        try {
+            MimeMessage msg = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(msg, "utf-8");
+            helper.setFrom(senderEmail);
+            helper.setTo(toEmail);
+            helper.setSubject(subject);
+            helper.setText(htmlContent, true);
+            mailSender.send(msg);
+            log.info("Email enviado a {}: {}", toEmail, subject);
+        } catch (MessagingException e) {
+            log.error("Error enviando email a {}: {}", toEmail, e.getMessage(), e);
+        }
+    }
+
 
 
 public void sendTemporaryPasswordEmail(String recipientEmail, String temporaryPassword) {
@@ -56,7 +110,7 @@ public void sendTemporaryPasswordEmail(String recipientEmail, String temporaryPa
                            + "<h2>" + temporaryPassword + "</h2>"
                            + "<p>Por favor, inicia sesión con esta contraseña y cámbiala lo antes posible por una de tu elección.</p>"
                            + "<p>Gracias,</p>"
-                           + "<p>El equipo de Productos Aec</p>";
+                           + "<p>El equipo de AECBlock</p>";
         helper.setText(htmlContent, true);
 
         mailSender.send(message);

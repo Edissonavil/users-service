@@ -1,39 +1,42 @@
 spring:
   application:
     name: aec-users
+  # Configuración de correo electrónico
   mail:
-    host:       ${MAIL_HOST:smtp.hostinger.com}
-    port:       ${MAIL_PORT:587}
-    username:   ${MAIL_USER:support@aecblock.com}
-    password:   ${MAIL_PASS:ProductosAec2025@}
-    protocol:   smtp
+    host: ${MAIL_HOST} # SIN valor por defecto para seguridad
+    port: ${MAIL_PORT:587} # Puerto puede tener valor por defecto, pero asegúrate que coincida con el host
+    username: ${MAIL_USER} # SIN valor por defecto para seguridad
+    password: ${MAIL_PASS} # SIN valor por defecto para seguridad
+    protocol: smtp
     properties:
-      mail.smtp.auth:             true
-      mail.smtp.starttls.enable:  true
-      mail.smtp.ssl.enable:       false
-      mail.smtp.ssl.trust:        ${MAIL_HOST:smtp.hostinger.com}
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.ssl.enable: false
+      mail.smtp.ssl.trust: ${MAIL_HOST} # Usa la variable de entorno, no el valor literal
     default-encoding: UTF-8
 
+  # Configuración de la base de datos
   datasource:
-    url:      ${DATASOURCE_URL:jdbc:postgresql://localhost:5432/aec}
-    username: ${DATASOURCE_USER:aec}
-    password: ${DATASOURCE_PASS:2412}
+    url: ${DATASOURCE_URL} # SIN valor por defecto para seguridad
+    username: ${DATASOURCE_USER} # SIN valor por defecto para seguridad
+    password: ${DATASOURCE_PASS} # SIN valor por defecto para seguridad
   jpa:
     hibernate:
-      ddl-auto: ${DDL_AUTO:update}
+      ddl-auto: ${DDL_AUTO:update} # 'update' es un valor por defecto común para desarrollo. Considera 'none' o 'validate' para producción.
 
+# Configuración JWT
 jwt:
-  secret:    ${JWT_SECRET:Cuetm0BgR8Bjk8Mo2OXtOlOxkc/N1K2g3vKx82o8Lcw=}
-  accessMs:  ${JWT_ACCESS_MS:3600000}
-  refreshMs: ${JWT_REFRESH_MS:86400000}
+  secret: ${JWT_SECRET} # ¡CRÍTICO! SIN valor por defecto para seguridad
+  accessMs: ${JWT_ACCESS_MS:3600000} # Las duraciones pueden tener valores por defecto
+  refreshMs: ${JWT_REFRESH_MS:86400000} # Las duraciones pueden tener valores por defecto
 
 server:
-  port: ${SERVER_PORT:8081}
+  port: ${SERVER_PORT:8081} # El puerto puede tener un valor por defecto para desarrollo local
 
 admin:
-  email: ${ADMIN_EMAIL:support@aecblock.com}
+  email: ${ADMIN_EMAIL} # SIN valor por defecto para seguridad
 
-spring:
-  docker:
-    compose:
-      enabled: false
+# Configuración de Docker Compose (repetido en tu original, se consolida aquí)
+docker:
+  compose:
+    enabled: false

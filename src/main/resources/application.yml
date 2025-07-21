@@ -33,7 +33,7 @@ jwt:
   refreshMs: ${JWT_REFRESH_MS:86400000}
 
 server:
-  port: ${SERVER_PORT:8081}
+  port: ${SERVER_PORT:8080}
 
 admin:
   email: ${ADMIN_EMAIL}

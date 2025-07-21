@@ -34,7 +34,6 @@ jwt:
 
 server:
   port: ${PORT:8080}
-  address: 0.0.0.0
 
 
 admin:
@@ -44,10 +43,3 @@ docker:
   compose:
     enabled: false
 
-eureka:
-  client:
-    service-url:
-      defaultZone: http://eureka-server:8761/eureka 
-  instance:
-    prefer-ip-address: true  
-    instance-id: ${spring.application.name}:${random.value} 

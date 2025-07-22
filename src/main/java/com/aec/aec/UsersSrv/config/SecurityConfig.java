@@ -91,18 +91,26 @@ public class SecurityConfig {
    * Configura CORS para permitir llamadas desde tu frontend
    */
   @Bean
-  public CorsConfigurationSource corsConfigurationSource() {
-    CorsConfiguration config = new CorsConfiguration();
-    config.setAllowedOrigins(List.of("http://localhost:3000"));
-    config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-    config.setAllowedHeaders(List.of("*"));
-    config.setAllowCredentials(true);
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration cfg = new CorsConfiguration();
 
-    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-    // Aplica a todas las rutas de la API
-    source.registerCorsConfiguration("/api/**", config);
-    return source;
-  }
+        // 1) Orígenes permitidos — incluye aquí localhost y tus dominios en producción
+        cfg.setAllowedOrigins(List.of(
+            "https://aecf-production.up.railway.app",
+            "https://aecblock.com"
+        ));
+        // 2) Métodos HTTP permitidos
+        cfg.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
+        // 3) Headers permitidos
+        cfg.setAllowedHeaders(List.of("*"));
+        // 4) Permitir enviar cookies o Authorization headers
+        cfg.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        // Aplica a todas las rutas
+        source.registerCorsConfiguration("/**", cfg);
+        return source;
+    }
 
   @Bean
   public PasswordEncoder passwordEncoder() {

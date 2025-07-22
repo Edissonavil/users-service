@@ -13,7 +13,6 @@ import lombok.RequiredArgsConstructor; // Añadir si usas inyección por constru
 @RestController
 @RequestMapping("/api") // Puedes cambiar esto a /api/solicitudes o similar si prefieres
 @RequiredArgsConstructor // Para inyección de dependencias con final
-@CrossOrigin(origins = "http://localhost:3000") // Asegúrate de que tu puerto de frontend sea correcto
 public class SolicitudController {
 
     private final EmailService emailService; // Inyección por constructor

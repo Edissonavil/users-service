@@ -47,6 +47,7 @@ public class SecurityConfig {
         .csrf(AbstractHttpConfigurer::disable)
         .authorizeHttpRequests(auth -> auth
             // Rutas públicas
+            .requestMatchers(HttpMethod.GET, "/api/users/health").permitAll()
             .requestMatchers(HttpMethod.GET, "/api/users/by-username/**").permitAll()
             .requestMatchers(HttpMethod.POST, "/api/users/register").permitAll()
             .requestMatchers("/actuator/health").permitAll()

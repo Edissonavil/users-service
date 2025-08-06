@@ -120,4 +120,33 @@ public void sendTemporaryPasswordEmail(String recipientEmail, String temporaryPa
     }
 }
 
+public void sendContactEmail(String nombre, String email, String asunto, String mensaje) throws MailException {
+        if (adminEmailRecipient == null || adminEmailRecipient.isBlank()) {
+            throw new IllegalStateException("El correo del administrador no está configurado (admin.email.recipient).");
+        }
+
+        String subject = "Nuevo Mensaje de Contacto: " + asunto;
+        String htmlContent = String.format(
+            "<html>" +
+            "<body>" +
+            "<h2>Se ha recibido un nuevo mensaje de contacto:</h2>" +
+            "<ul>" +
+            "<li><strong>Nombre del Remitente:</strong> %s</li>" +
+            "<li><strong>Correo Electrónico del Remitente:</strong> %s</li>" +
+            "<li><strong>Asunto:</strong> %s</li>" +
+            "</ul>" +
+            "<h3>Mensaje:</h3>" +
+            "<p style='white-space: pre-line;'>%s</p>" +
+            "<p>Por favor, responde a este mensaje directamente al correo del remitente.</p>" +
+            "<p>Saludos cordiales,<br/>El sistema AECBlock</p>" +
+            "</body>" +
+            "</html>",
+            nombre, email, asunto,
+            mensaje != null ? mensaje.replace("\n", "<br/>") : "El usuario no proporcionó un mensaje."
+        );
+
+        sendHtmlEmail(adminEmailRecipient.trim(), subject, htmlContent);
+        log.info("Correo de contacto enviado a: {}", adminEmailRecipient);
+    }
+
 }

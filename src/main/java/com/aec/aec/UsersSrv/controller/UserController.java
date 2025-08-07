@@ -50,12 +50,6 @@ public class UserController {
     private final UserService userService;
     private final UserRepository userRepository;
 
-    // Endpoint público
-    @GetMapping("/health")
-    public String health() {
-        return "OK";
-    }
-
     // 1) Registro público de clientes (ya existente)
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<UserDto>> registerClient(
@@ -177,7 +171,7 @@ public class UserController {
     }
 
     // 9) Solicitud de creador (ya existente)
-    @PostMapping("/solicitud-creador")
+    @PostMapping("/solicitudes/creador")
     public ResponseEntity<?> crearSolicitud(@RequestBody SolicitudCreadorDTO dto) {
         emailService.sendCreatorApplicationEmail(dto.getNombreCompleto(), dto.getUsername(), dto.getEmail(),
                 dto.getHablanosDeTi());

@@ -7,6 +7,7 @@ import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.MailException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -18,6 +19,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.aec.aec.UsersSrv.dto.ChangePasswordDto;
+import com.aec.aec.UsersSrv.dto.ContactoDto;
+
 import org.springframework.web.server.ResponseStatusException;
 
 import com.aec.aec.UsersSrv.dto.RegisterClientDto;
@@ -47,13 +50,12 @@ public class UserController {
     private final UserService userService;
     private final UserRepository userRepository;
 
-
     // Endpoint público
     @GetMapping("/health")
     public String health() {
         return "OK";
     }
-    
+
     // 1) Registro público de clientes (ya existente)
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<UserDto>> registerClient(
@@ -177,7 +179,8 @@ public class UserController {
     // 9) Solicitud de creador (ya existente)
     @PostMapping("/solicitud-creador")
     public ResponseEntity<?> crearSolicitud(@RequestBody SolicitudCreadorDTO dto) {
-        emailService.sendCreatorApplicationEmail(dto.getNombreCompleto(), dto.getUsername(), dto.getEmail(), dto.getHablanosDeTi());
+        emailService.sendCreatorApplicationEmail(dto.getNombreCompleto(), dto.getUsername(), dto.getEmail(),
+                dto.getHablanosDeTi());
         return ResponseEntity.ok(Map.of("status", "enviado"));
     }
 
@@ -213,31 +216,30 @@ public class UserController {
         return ResponseEntity.ok(resp);
     }
 
-@PostMapping("/request-password-reset")
-public ResponseEntity<ApiResponse<Void>> requestPasswordReset(@RequestBody Map<String, String> body) {
-    try {
-        String username = body.get("username");
-        userService.requestPasswordResetNotification(username);
-        ApiResponse<Void> response = new ApiResponse<>(
-                "Solicitud de reseteo de contraseña procesada. Un administrador será notificado.", null);
-        return ResponseEntity.ok(response);
-    } catch (EntityNotFoundException e) {
-        ApiResponse<Void> response = new ApiResponse<>(
-                "Solicitud de reseteo de contraseña procesada. Si el nombre de usuario es correcto, un administrador ha sido notificado.",
-                null);
-        return ResponseEntity.ok(response); // No da pistas
-    } catch (Exception e) {
-        ApiResponse<Void> response = new ApiResponse<>(
-                "Error al procesar la solicitud de reseteo de contraseña: " + e.getMessage(), null);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    @PostMapping("/request-password-reset")
+    public ResponseEntity<ApiResponse<Void>> requestPasswordReset(@RequestBody Map<String, String> body) {
+        try {
+            String username = body.get("username");
+            userService.requestPasswordResetNotification(username);
+            ApiResponse<Void> response = new ApiResponse<>(
+                    "Solicitud de reseteo de contraseña procesada. Un administrador será notificado.", null);
+            return ResponseEntity.ok(response);
+        } catch (EntityNotFoundException e) {
+            ApiResponse<Void> response = new ApiResponse<>(
+                    "Solicitud de reseteo de contraseña procesada. Si el nombre de usuario es correcto, un administrador ha sido notificado.",
+                    null);
+            return ResponseEntity.ok(response); // No da pistas
+        } catch (Exception e) {
+            ApiResponse<Void> response = new ApiResponse<>(
+                    "Error al procesar la solicitud de reseteo de contraseña: " + e.getMessage(), null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
     }
-}
-
 
     @GetMapping("/api/users/{username}")
     public ResponseEntity<UserDto> getUserByUsername(@PathVariable String username) {
         User u = userRepository.findByNombreUsuario(username)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));                                                                                                                                                                                
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
         UserDto dto = UserDto.builder()
                 .nombreUsuario(u.getNombreUsuario())
                 .email(u.getEmail())
@@ -246,17 +248,64 @@ public ResponseEntity<ApiResponse<Void>> requestPasswordReset(@RequestBody Map<S
         return ResponseEntity.ok(dto);
     }
 
-    /** 1️⃣  ───  BUSCAR POR USERNAME (cadena) ─── */
+    /** 1️⃣ ─── BUSCAR POR USERNAME (cadena) ─── */
     // separamos con un prefijo para evitar colisión
     @GetMapping("/by-username/{username}")
     public ResponseEntity<UserDto> getByUsername(@PathVariable String username) {
         return ResponseEntity.ok(userService.findByNombreUsuario(username));
     }
 
-    /** 2️⃣  ───  BUSCAR POR ID NUMÉRICO ─── */
+    /** 2️⃣ ─── BUSCAR POR ID NUMÉRICO ─── */
     @GetMapping("/{id:\\d+}")
     public ResponseEntity<UserDto> getById(@PathVariable Long id) {
         return ResponseEntity.ok(userService.findById(id));
+    }
+
+    /** 3️⃣ ─── SOlicitud de creadres Aec─── */
+    @PostMapping("/solicitud-creador")
+    public ResponseEntity<String> solicitarCreador(@RequestBody SolicitudCreadorDTO request) {
+        try {
+            // Llama al servicio de correo para enviar la notificación al administrador
+            emailService.sendCreatorApplicationEmail(
+                    request.getNombreCompleto(),
+                    request.getUsername(),
+                    request.getEmail(),
+                    request.getHablanosDeTi());
+            return ResponseEntity.ok("Solicitud enviada con éxito.");
+        } catch (MailException e) {
+            // Manejo de errores de envío de correo
+            return ResponseEntity.internalServerError().body("Error al enviar la solicitud: " + e.getMessage());
+        } catch (IllegalStateException e) {
+            // Manejo de errores de configuración (ej. adminEmailRecipient no configurado)
+            return ResponseEntity.internalServerError().body(e.getMessage());
+        } catch (Exception e) {
+            // Otros errores inesperados
+            return ResponseEntity.internalServerError().body("Ocurrió un error inesperado al procesar la solicitud.");
+        }
+    }
+
+    /** 3️⃣ ─── SOlicitud de Contacto─── */
+
+    @PostMapping("/contact")
+    public ResponseEntity<String> enviarMensajeContacto(@RequestBody ContactoDto request) {
+        try {
+            // Llama al servicio de correo para enviar la notificación al administrador
+            emailService.sendContactEmail(
+                    request.getNombre(),
+                    request.getEmail(),
+                    request.getAsunto(),
+                    request.getMensaje());
+            return ResponseEntity.ok("Mensaje enviado con éxito. Te contactaremos pronto.");
+        } catch (MailException e) {
+            // Manejo de errores de envío de correo
+            return ResponseEntity.internalServerError().body("Error al enviar el mensaje: " + e.getMessage());
+        } catch (IllegalStateException e) {
+            // Manejo de errores de configuración
+            return ResponseEntity.internalServerError().body(e.getMessage());
+        } catch (Exception e) {
+            // Otros errores inesperados
+            return ResponseEntity.internalServerError().body("Ocurrió un error inesperado al procesar la solicitud.");
+        }
     }
 
 }

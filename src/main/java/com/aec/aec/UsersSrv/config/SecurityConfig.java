@@ -58,29 +58,16 @@ public class SecurityConfig {
             .requestMatchers(HttpMethod.POST, "/api/users/solicitud-creador").permitAll()
             .requestMatchers(HttpMethod.POST, "/api/users/contact").permitAll()
 
-
-            // -->> AÑADE ESTAS LÍNEAS <<--
+          //Rutas Privadas
             .requestMatchers(HttpMethod.GET, "/api/users/me").authenticated()
             .requestMatchers(HttpMethod.PUT, "/api/users/me/change-password").authenticated()
-            .requestMatchers(HttpMethod.PUT, "/api/users/me").authenticated() // <-- ¡AÑADE ESTA LÍNEA! Para actualizar
-                                                                              // el propio perfil
-            .requestMatchers(HttpMethod.DELETE, "/api/users/me").authenticated() // <-- ¡AÑADE ESTA LÍNEA! Para eliminar
-                                                                                 // el propio perfil
-
-            // -->> FIN DE LÍNEAS AÑADIDAS <<--
-
-            // Reglas para ADMIN
+            .requestMatchers(HttpMethod.PUT, "/api/users/me").authenticated() 
+            .requestMatchers(HttpMethod.DELETE, "/api/users/me").authenticated() 
             .requestMatchers(HttpMethod.GET, "/api/users").hasAuthority("ROL_ADMIN")
             .requestMatchers(HttpMethod.GET, "/api/users/{id:\\d+}").hasAuthority("ROL_ADMIN")
             .requestMatchers(HttpMethod.POST, "/api/users/{id:\\d+}/reset-password").hasAuthority("ROL_ADMIN")
-            .requestMatchers(HttpMethod.PUT, "/api/users/{id:\\d+}").hasAuthority("ROL_ADMIN") // <-- ¡AÑADE ESTA LÍNEA!
-                                                                                               // Para que el admin
-                                                                                               // actualice otros
-                                                                                               // usuarios
-            .requestMatchers(HttpMethod.DELETE, "/api/users/{id:\\d+}").hasAuthority("ROL_ADMIN") // <-- ¡AÑADE ESTA
-                                                                                                  // LÍNEA! Para que el
-                                                                                                  // admin elimine otros
-                                                                                                  // usuarios
+            .requestMatchers(HttpMethod.PUT, "/api/users/{id:\\d+}").hasAuthority("ROL_ADMIN") 
+            .requestMatchers(HttpMethod.DELETE, "/api/users/{id:\\d+}").hasAuthority("ROL_ADMIN") 
 
             .anyRequest().authenticated())
         .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import lombok.RequiredArgsConstructor; // Añadir si usas inyección por constructor final
 
 @RestController
-@RequestMapping("/api") // Puedes cambiar esto a /api/solicitudes o similar si prefieres
+@RequestMapping("/api/users") // Puedes cambiar esto a /api/solicitudes o similar si prefieres
 @RequiredArgsConstructor // Para inyección de dependencias con final
 public class SolicitudController {
 

@@ -55,7 +55,9 @@ public class SecurityConfig {
             .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
             .requestMatchers(HttpMethod.POST, "/api/users/request-password-reset").permitAll()
             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-            .requestMatchers(HttpMethod.POST, "/api/solicitud-creador").permitAll()
+            .requestMatchers(HttpMethod.POST, "/api/users/solicitud-creador").permitAll()
+            .requestMatchers(HttpMethod.POST, "/api/users/contact").permitAll()
+
 
             // -->> AÑADE ESTAS LÍNEAS <<--
             .requestMatchers(HttpMethod.GET, "/api/users/me").authenticated()
@@ -94,7 +96,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration cfg = new CorsConfiguration();
 
-        cfg.setAllowedOrigins(List.of("https://gateway-production-129e.up.railway.app", "https://aecf-production.up.railway.app","https://aecblock.com"));
+        cfg.setAllowedOrigins(List.of("https://gateway-production-129e.up.railway.app","https://aecblock.com"));
         cfg.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
         cfg.setAllowedHeaders(List.of("*"));
         cfg.setAllowCredentials(true);

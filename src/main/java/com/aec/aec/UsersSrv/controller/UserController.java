@@ -4,6 +4,7 @@ import com.aec.aec.UsersSrv.dto.ApiResponse;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -49,6 +50,7 @@ public class UserController {
     private final EmailService emailService; // Asegúrate de que este servicio pueda enviar correos
     private final UserService userService;
     private final UserRepository userRepository;
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(UserController.class);
 
     // 1) Registro público de clientes (ya existente)
     @PostMapping("/register")
@@ -71,32 +73,56 @@ public class UserController {
                 .body(resp);
     }
 
-    // 2) Creación de Admin/Colaborador (ya existente)
+    // 2) Creación de Admin/Colaborador
     @PostMapping
-    @PreAuthorize("hasAuthority('ROL_ADMIN')") // hasAuthority es correcto para roles en Spring Security 6+
-    public ResponseEntity<ApiResponse<UserDto>> createUser(
-            @Valid @RequestBody UserDto dto) {
+    @PreAuthorize("hasAuthority('ROL_ADMIN')")
+    public ResponseEntity<ApiResponse<UserDto>> createUser(@Valid @RequestBody UserDto dto) {
+
+        // 1) Si es COLABORADOR y NO envían clave, generar una temporal
+        String plainPasswordForEmail = dto.getClave();
+        if (dto.getRol() == Rol.ROL_COLABORADOR && (plainPasswordForEmail == null || plainPasswordForEmail.isBlank())) {
+            plainPasswordForEmail = UUID.randomUUID().toString().replace("-", "").substring(0, 10);
+            dto.setClave(plainPasswordForEmail);
+        }
+
+        // 2) Registrar usuario (acá se encripta)
         UserDto created = userSvc.register(dto);
 
-        String msg;
-        switch (dto.getRol()) {
-            case ROL_ADMIN:
-                msg = "Administrador creado correctamente";
-                break;
-            case ROL_COLABORADOR:
-                msg = "Colaborador creado correctamente";
-                break;
-            default:
-                msg = "Usuario creado correctamente";
-                break;
+        // 3) Si es COLABORADOR, enviar email de bienvenida con credenciales (clave
+        // temporal)
+        boolean emailSent = false;
+        String emailErrorMsg = null;
+        if (dto.getRol() == Rol.ROL_COLABORADOR) {
+            try {
+                emailService.sendCollaboratorWelcomeEmail(
+                        created.getEmail(), // usar el email resultante
+                        created.getNombre(),
+                        created.getNombreUsuario(),
+                        plainPasswordForEmail);
+                emailSent = true;
+            } catch (Exception ex) {
+                emailErrorMsg = ex.getMessage();
+                // Log con stacktrace, no romper creación
+                log.error("No se pudo enviar email de bienvenida a colaborador {} ({}): {}",
+                        created.getNombreUsuario(), created.getEmail(), ex.getMessage(), ex);
+            }
         }
-        ApiResponse<UserDto> resp = new ApiResponse<>(
-                msg,
-                created);
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(resp);
+        String baseMsg = switch (dto.getRol()) {
+            case ROL_ADMIN -> "Administrador creado correctamente";
+            case ROL_COLABORADOR -> "Colaborador creado correctamente";
+            default -> "Usuario creado correctamente";
+        };
+
+        // Añadimos un sufijo informativo no sensible
+        String finalMsg = baseMsg +
+                (dto.getRol() == Rol.ROL_COLABORADOR
+                        ? (emailSent ? " (correo de bienvenida enviado)"
+                                : " (⚠ no se pudo enviar el correo de bienvenida)")
+                        : "");
+
+        ApiResponse<UserDto> resp = new ApiResponse<>(finalMsg, created);
+        return ResponseEntity.status(HttpStatus.CREATED).body(resp);
     }
 
     // 3) Obtener todos los usuarios (para AdminManageUsersPage)
@@ -170,7 +196,7 @@ public class UserController {
         return ResponseEntity.ok(dto);
     }
 
-    // 9) Solicitud de creador (ya existente)
+    // 9) Solicitud de creador +
     @PostMapping("/solicitudes/creador")
     public ResponseEntity<?> crearSolicitud(@RequestBody SolicitudCreadorDTO dto) {
         emailService.sendCreatorApplicationEmail(dto.getNombreCompleto(), dto.getUsername(), dto.getEmail(),
@@ -230,7 +256,7 @@ public class UserController {
         }
     }
 
-    @GetMapping("/api/users/{username}")
+    @GetMapping("/username/{username}")
     public ResponseEntity<UserDto> getUserByUsername(@PathVariable String username) {
         User u = userRepository.findByNombreUsuario(username)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));

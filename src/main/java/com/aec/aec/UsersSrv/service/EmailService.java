@@ -17,22 +17,17 @@ import org.slf4j.LoggerFactory;
 @Service
 public class EmailService {
 
-        private static final Logger log = LoggerFactory.getLogger(EmailService.class);
-
+    private static final Logger log = LoggerFactory.getLogger(EmailService.class);
 
     @Autowired
     private JavaMailSender mailSender;
 
-    // Inyecta el correo del administrador desde application.yml/properties
-    @Value("${admin.email.recipient:support@aecblock.com}")
-    private String adminEmailRecipient;
+    @Value("${admin.email}")
+    private String adminEmail;  
 
-    // Inyecta el correo del remitente desde application.yml/properties
-    @Value("${admin.email.sender:support@aecblock.com}")
-    private String senderEmail;
-
-    public void sendCreatorApplicationEmail(String nombreCompleto, String username, String email, String hablanosDeTi) throws MailException {
-        if (adminEmailRecipient == null || adminEmailRecipient.isBlank()) {
+    public void sendCreatorApplicationEmail(String nombreCompleto, String username, String email, String hablanosDeTi)
+            throws MailException {
+        if (adminEmail == null || adminEmail.isBlank()) {
             throw new IllegalStateException("El correo del administrador no está configurado (admin.email.recipient).");
         }
 
@@ -49,33 +44,34 @@ public class EmailService {
         }
         emailText.append("\nPor favor, revisa esta solicitud y contacta al interesado.");
 
-        // Usamos sendHtmlEmail para mantener la coherencia si quieres usar HTML en el futuro
+        // Usamos sendHtmlEmail para mantener la coherencia si quieres usar HTML en el
+        // futuro
         // Por ahora, el contenido es plano, pero MimeMessageHelper lo permite.
-        String subject = "Nueva Solicitud de Creador AEC";
+        String subject = "📩 Nueva Solicitud de Creador AEC";
         String htmlContent = String.format(
-            "<html>" +
-            "<body>" +
-            "<p>Se ha recibido una nueva solicitud para ser Creador AEC con los siguientes datos:</p>" +
-            "<ul>" +
-            "<li><strong>Nombre Completo:</strong> %s</li>" +
-            "<li><strong>Nombre de Usuario Sugerido:</strong> %s</li>" +
-            "<li><strong>Correo Electrónico:</strong> %s</li>" +
-            "<li><strong>Háblanos un poco de ti:</strong> %s</li>" +
-            "</ul>" +
-            "<p>Por favor, revisa esta solicitud y contacta al interesado.</p>" +
-            "<p>Saludos cordiales,<br/>El sistema AECBlock</p>" +
-            "</body>" +
-            "</html>",
-            nombreCompleto, username, email,
-            (hablanosDeTi != null && !hablanosDeTi.trim().isEmpty()) ? hablanosDeTi.replace("\n", "<br/>") : "El usuario no proporcionó información adicional."
-        );
+                "<html>" +
+                        "<body>" +
+                        "<p>Se ha recibido una nueva solicitud para ser Creador AEC con los siguientes datos:</p>" +
+                        "<ul>" +
+                        "<li><strong>Nombre Completo:</strong> %s</li>" +
+                        "<li><strong>Nombre de Usuario Sugerido:</strong> %s</li>" +
+                        "<li><strong>Correo Electrónico:</strong> %s</li>" +
+                        "<li><strong>Háblanos un poco de ti:</strong> %s</li>" +
+                        "</ul>" +
+                        "<p>Por favor, revisa esta solicitud y contacta al interesado.</p>" +
+                        "<p>Saludos cordiales,<br/>El sistema AECBlock</p>" +
+                        "</body>" +
+                        "</html>",
+                nombreCompleto, username, email,
+                (hablanosDeTi != null && !hablanosDeTi.trim().isEmpty()) ? hablanosDeTi.replace("\n", "<br/>")
+                        : "El usuario no proporcionó información adicional.");
 
-        sendHtmlEmail(adminEmailRecipient.trim(), subject, htmlContent);
-        // log.info("Correo de solicitud de creador enviado a: {}", adminEmailRecipient);
+        sendHtmlEmail(adminEmail.trim(), subject, htmlContent);
+        // log.info("Correo de solicitud de creador enviado a: {}",
+        // adminEmailRecipient);
     }
 
-
-   private void sendHtmlEmail(String toEmail, String subject, String htmlContent) {
+    private void sendHtmlEmail(String toEmail, String subject, String htmlContent) {
         if (toEmail == null || toEmail.isBlank()) {
             log.warn("No hay destinatario para el email: {}", subject);
             return;
@@ -83,7 +79,7 @@ public class EmailService {
         try {
             MimeMessage msg = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(msg, "utf-8");
-            helper.setFrom(senderEmail);
+            helper.setFrom(adminEmail);
             helper.setTo(toEmail);
             helper.setSubject(subject);
             helper.setText(htmlContent, true);
@@ -94,59 +90,82 @@ public class EmailService {
         }
     }
 
+    public void sendTemporaryPasswordEmail(String recipientEmail, String temporaryPassword) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
+            helper.setTo(recipientEmail);
+            helper.setFrom(adminEmail);
+            helper.setSubject("Tu Contraseña Temporal - AECBlock");
 
-public void sendTemporaryPasswordEmail(String recipientEmail, String temporaryPassword) {
-    try {
-        MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, true);
+            String htmlContent = "<h1>Hola!</h1>"
+                    + "<p>Tu nueva contraseña temporal para acceder a tu cuenta es:</p>"
+                    + "<h2>" + temporaryPassword + "</h2>"
+                    + "<p>Por favor, inicia sesión con esta contraseña y cámbiala lo antes posible por una de tu elección.</p>"
+                    + "<p>Gracias,</p>"
+                    + "<p>El equipo de AECBlock</p>";
+            helper.setText(htmlContent, true);
 
-        helper.setTo(recipientEmail);
-        helper.setFrom("support@aecblock.com"); 
-        helper.setSubject("Tu Contraseña Temporal - AECBlock");
-
-        String htmlContent = "<h1>Hola!</h1>"
-                           + "<p>Tu nueva contraseña temporal para acceder a tu cuenta es:</p>"
-                           + "<h2>" + temporaryPassword + "</h2>"
-                           + "<p>Por favor, inicia sesión con esta contraseña y cámbiala lo antes posible por una de tu elección.</p>"
-                           + "<p>Gracias,</p>"
-                           + "<p>El equipo de AECBlock</p>";
-        helper.setText(htmlContent, true);
-
-        mailSender.send(message);
-        System.out.println("Email con contraseña temporal enviado a: " + recipientEmail);
-    } catch (jakarta.mail.MessagingException e) {
-        System.err.println("Error al enviar email de contraseña temporal a " + recipientEmail + ": " + e.getMessage());
+            mailSender.send(message);
+            System.out.println("Email con contraseña temporal enviado a: " + recipientEmail);
+        } catch (jakarta.mail.MessagingException e) {
+            System.err.println(
+                    "Error al enviar email de contraseña temporal a " + recipientEmail + ": " + e.getMessage());
+        }
     }
-}
 
-public void sendContactEmail(String nombre, String email, String asunto, String mensaje) throws MailException {
-        if (adminEmailRecipient == null || adminEmailRecipient.isBlank()) {
+    public void sendContactEmail(String nombre, String email, String asunto, String mensaje) throws MailException {
+        if (adminEmail == null || adminEmail.isBlank()) {
             throw new IllegalStateException("El correo del administrador no está configurado (admin.email.recipient).");
         }
 
-        String subject = "Nuevo Mensaje de Contacto: " + asunto;
+        String subject = "🙋 Nuevo Mensaje de Contacto: " + asunto;
         String htmlContent = String.format(
-            "<html>" +
-            "<body>" +
-            "<h2>Se ha recibido un nuevo mensaje de contacto:</h2>" +
-            "<ul>" +
-            "<li><strong>Nombre del Remitente:</strong> %s</li>" +
-            "<li><strong>Correo Electrónico del Remitente:</strong> %s</li>" +
-            "<li><strong>Asunto:</strong> %s</li>" +
-            "</ul>" +
-            "<h3>Mensaje:</h3>" +
-            "<p style='white-space: pre-line;'>%s</p>" +
-            "<p>Por favor, responde a este mensaje directamente al correo del remitente.</p>" +
-            "<p>Saludos cordiales,<br/>El sistema AECBlock</p>" +
-            "</body>" +
-            "</html>",
-            nombre, email, asunto,
-            mensaje != null ? mensaje.replace("\n", "<br/>") : "El usuario no proporcionó un mensaje."
-        );
+                "<html>" +
+                        "<body>" +
+                        "<h2>Se ha recibido un nuevo mensaje de contacto:</h2>" +
+                        "<ul>" +
+                        "<li><strong>Nombre del Remitente:</strong> %s</li>" +
+                        "<li><strong>Correo Electrónico del Remitente:</strong> %s</li>" +
+                        "<li><strong>Asunto:</strong> %s</li>" +
+                        "</ul>" +
+                        "<h3>Mensaje:</h3>" +
+                        "<p style='white-space: pre-line;'>%s</p>" +
+                        "<p>Por favor, responde a este mensaje directamente al correo del remitente.</p>" +
+                        "<p>Saludos cordiales,<br/>El sistema AECBlock</p>" +
+                        "</body>" +
+                        "</html>",
+                nombre, email, asunto,
+                mensaje != null ? mensaje.replace("\n", "<br/>") : "El usuario no proporcionó un mensaje.");
 
-        sendHtmlEmail(adminEmailRecipient.trim(), subject, htmlContent);
-        log.info("Correo de contacto enviado a: {}", adminEmailRecipient);
+        sendHtmlEmail(adminEmail.trim(), subject, htmlContent);
+        log.info("Correo de contacto enviado a: {}", adminEmail);
+    }
+
+    public void sendCollaboratorWelcomeEmail(String toEmail, String nombre, String username, String temporaryPassword) {
+        String subject = "Bienvenido(a) a AECBlock - Credenciales de acceso (clave temporal)";
+        String safeNombre = (nombre != null && !nombre.isBlank()) ? nombre : username;
+
+        String html = """
+                <html>
+                <body style="font-family: Arial, sans-serif; line-height:1.6;">
+                  <h2>¡Bienvenido(a) a AECBlock!</h2>
+                  <p>Hola <strong>%s</strong>,</p>
+                  <p>Tu cuenta de <strong>Colaborador</strong> ha sido creada exitosamente. A continuación, tus credenciales:</p>
+                  <ul>
+                    <li><strong>Usuario:</strong> %s</li>
+                    <li><strong>Contraseña temporal:</strong> %s</li>
+                  </ul>
+                  <p><strong>Importante:</strong> esta contraseña es de <strong>uso temporal</strong>. Por favor, inicia sesión y <strong>cámbiala de inmediato</strong> desde tu perfil.</p>
+                  <p>Gracias por formar parte del grupo de especialistas que acelera el crecimiento de la próxima generación de profesionales AEC.</p>
+                  <p>Saludos cordiales,<br/>Equipo AECBlock</p>
+                </body>
+                </html>
+                """
+                .formatted(safeNombre, username, temporaryPassword);
+
+        sendHtmlEmail(toEmail, subject, html);
     }
 
 }

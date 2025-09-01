@@ -103,14 +103,14 @@ public class UserController {
             } catch (Exception ex) {
                 emailErrorMsg = ex.getMessage();
                 // Log con stacktrace, no romper creación
-                log.error("No se pudo enviar email de bienvenida a colaborador {} ({}): {}",
+                log.error("No se pudo enviar email de bienvenida a creador {} ({}): {}",
                         created.getNombreUsuario(), created.getEmail(), ex.getMessage(), ex);
             }
         }
 
         String baseMsg = switch (dto.getRol()) {
             case ROL_ADMIN -> "Administrador creado correctamente";
-            case ROL_COLABORADOR -> "Colaborador creado correctamente";
+            case ROL_COLABORADOR -> "Creador creado correctamente";
             default -> "Usuario creado correctamente";
         };
 
@@ -147,17 +147,11 @@ public class UserController {
     }
 
     // 5) Actualizar usuario por ID (para AdminManageUsersPage)
-    // Nota: Este endpoint puede ser usado por el admin para cualquier usuario,
-    // o por el propio usuario para sus datos (siempre que se valide la contraseña
-    // actual)
     @PutMapping("/{id}") // PUT /api/users/{id}
     @PreAuthorize("hasAuthority('ROL_ADMIN') or #id == principal.id") // hasAuthority es correcto
     public ResponseEntity<UserDto> update(@PathVariable Long id,
             @Valid @RequestBody UserDto dto) {
         dto.setId(id);
-        // Aquí, tu userSvc.update() debe manejar la lógica de actualización
-        // y la validación de la contraseña actual si el usuario no es admin
-        // o si se está cambiando la contraseña.
         return ResponseEntity.ok(userSvc.updateMe(dto));
     }
 
@@ -173,10 +167,7 @@ public class UserController {
     @PostMapping("/{id}/reset-password") // POST /api/users/{id}/reset-password
     @PreAuthorize("hasAuthority('ROL_ADMIN')") // Solo un ADMIN puede resetear contraseñas
     public ResponseEntity<ApiResponse<Map<String, String>>> resetUserPassword(@PathVariable Long id) {
-        // Lógica para generar contraseña temporal, guardarla en el usuario y enviarla
-        // por correo
         String temporaryPassword = userSvc.resetPassword(id); // Implementar en UserService
-
         // Envía el correo con la contraseña temporal
         String userEmail = userSvc.findById(id).getEmail();
         emailService.sendTemporaryPasswordEmail(userEmail, temporaryPassword);
@@ -269,7 +260,6 @@ public class UserController {
     }
 
     /** 1️⃣ ─── BUSCAR POR USERNAME (cadena) ─── */
-    // separamos con un prefijo para evitar colisión
     @GetMapping("/by-username/{username}")
     public ResponseEntity<UserDto> getByUsername(@PathVariable String username) {
         return ResponseEntity.ok(userService.findByNombreUsuario(username));
@@ -285,7 +275,6 @@ public class UserController {
     @PostMapping("/solicitud-creador")
     public ResponseEntity<String> solicitarCreador(@RequestBody SolicitudCreadorDTO request) {
         try {
-            // Llama al servicio de correo para enviar la notificación al administrador
             emailService.sendCreatorApplicationEmail(
                     request.getNombreCompleto(),
                     request.getUsername(),
@@ -293,7 +282,6 @@ public class UserController {
                     request.getHablanosDeTi());
             return ResponseEntity.ok("Solicitud enviada con éxito.");
         } catch (MailException e) {
-            // Manejo de errores de envío de correo
             return ResponseEntity.internalServerError().body("Error al enviar la solicitud: " + e.getMessage());
         } catch (IllegalStateException e) {
             // Manejo de errores de configuración (ej. adminEmailRecipient no configurado)
@@ -309,7 +297,6 @@ public class UserController {
     @PostMapping("/contact")
     public ResponseEntity<String> enviarMensajeContacto(@RequestBody ContactoDto request) {
         try {
-            // Llama al servicio de correo para enviar la notificación al administrador
             emailService.sendContactEmail(
                     request.getNombre(),
                     request.getEmail(),

@@ -49,7 +49,6 @@ public class SecurityConfig {
             // Rutas públicas
             .requestMatchers(HttpMethod.GET, "/api/users/by-username/**").permitAll()
             .requestMatchers(HttpMethod.POST, "/api/users/register").permitAll()
-            .requestMatchers("/actuator/health").permitAll()
             .requestMatchers(HttpMethod.GET, "/api/users/{username}").permitAll()
             .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
             .requestMatchers(HttpMethod.POST, "/api/users/request-password-reset").permitAll()

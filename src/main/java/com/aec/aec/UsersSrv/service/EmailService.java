@@ -152,7 +152,7 @@ public class EmailService {
                 <body style="font-family: Arial, sans-serif; line-height:1.6;">
                   <h2>¡Bienvenido(a) a AECBlock!</h2>
                   <p>Hola <strong>%s</strong>,</p>
-                  <p>Tu cuenta de <strong>Colaborador</strong> ha sido creada exitosamente. A continuación, tus credenciales:</p>
+                  <p>Tu cuenta de <strong>Creador</strong> ha sido creada exitosamente. A continuación, tus credenciales:</p>
                   <ul>
                     <li><strong>Usuario:</strong> %s</li>
                     <li><strong>Contraseña temporal:</strong> %s</li>
